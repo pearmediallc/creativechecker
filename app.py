@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, jsonify, session, after_this_request
+from flask import Flask, request, render_template, send_file, jsonify, session, after_this_request, send_from_directory
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image, ImageDraw
@@ -10,7 +10,7 @@ import zipfile
 import io
 import uuid
 import tempfile
-import shutil  # For directory cleanup
+import shutil
 import time
 import logging
 import threading
@@ -20,7 +20,7 @@ import redis
 from pillow_heif import register_heif_opener
 
 # Connect to Redis
-redis_url = os.getenv('https://creativechecker.onrender.com', 'redis://localhost:6379')
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 redis_client = redis.from_url(redis_url, decode_responses=True)
 
 # Register HEIF opener
@@ -35,18 +35,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 app.secret_key = 'f8cl2k98cj3i4fnckac3'
 
-job_status = {}
-job_folders = {}  # Tracks job_id -> session output folder mapping
-
-# Set up Flask logger
-if not app.debug:
-    gunicorn_logger = logging.getLogger("gunicorn.error")
-    app.logger.handlers = gunicorn_logger.handlers
-    app.logger.setLevel(gunicorn_logger.level)
-
+# Update the index route to serve the file directly
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return send_from_directory('.', 'index.html')
 
 @app.before_request
 def assign_session_id():
