@@ -1,6 +1,6 @@
-flask
-pillow
-opencv-python-headless
-pillow-heif
-redis
-gunicorn
+services:
+  - type: web
+    name: your-app-name
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --log-level debug
