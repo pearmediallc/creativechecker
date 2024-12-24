@@ -19,27 +19,58 @@ from logging.handlers import RotatingFileHandler
 import redis
 from pillow_heif import register_heif_opener
 
-# Connect to Redis
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-redis_client = redis.from_url(redis_url, decode_responses=True)
+# Redis configuration with fallback to in-memory storage
+class FallbackStorage:
+    def __init__(self):
+        self.storage = {}
+    
+    def hset(self, name, key, value):
+        if name not in self.storage:
+            self.storage[name] = {}
+        self.storage[name][key] = value
+        return 1
+    
+    def hget(self, name, key):
+        return self.storage.get(name, {}).get(key)
+    
+    def hincrby(self, name, key, amount):
+        if name not in self.storage:
+            self.storage[name] = {}
+        current = int(self.storage[name].get(key, 0))
+        self.storage[name][key] = str(current + amount)
+        return current + amount
+    
+    def hgetall(self, name):
+        return self.storage.get(name, {})
+
+try:
+    # Try to connect to Redis using environment variable
+    redis_url = os.getenv('REDIS_URL')
+    if redis_url:
+        redis_client = redis.from_url(redis_url, decode_responses=True)
+        # Test the connection
+        redis_client.ping()
+    else:
+        raise Exception("No REDIS_URL environment variable found")
+except Exception as e:
+    print(f"Redis connection failed: {e}. Using fallback storage.")
+    redis_client = FallbackStorage()
 
 # Register HEIF opener
 register_heif_opener()
 
 # Flask app setup
 app = Flask(__name__)
-FFMPEG_PATH = os.getenv('FFMPEG_PATH', 'ffmpeg')  # Render has ffmpeg installed
+FFMPEG_PATH = os.getenv('FFMPEG_PATH', 'ffmpeg')
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'outputs'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 app.secret_key = 'f8cl2k98cj3i4fnckac3'
 
-# Update the index route to serve the file directly
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
-
 @app.before_request
 def assign_session_id():
     if 'session_id' not in session:
