@@ -20,15 +20,19 @@ import redis
 from pillow_heif import register_heif_opener
 
 # Connect to Redis
-redis_client = redis.StrictRedis(host='localhost', port=6379, decode_responses=True)
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+redis_client = redis.from_url(redis_url, decode_responses=True)
 
 # Register HEIF opener
 register_heif_opener()
 
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
+
 # Flask app setup
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-OUTPUT_FOLDER = 'outputs'
+FFMPEG_PATH = os.getenv('FFMPEG_PATH', 'ffmpeg')  # Render has ffmpeg installed
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 app.secret_key = 'f8cl2k98cj3i4fnckac3'
