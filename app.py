@@ -20,7 +20,7 @@ import redis
 from pillow_heif import register_heif_opener
 
 # Connect to Redis
-redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+redis_url = os.getenv('https://creativechecker.onrender.com', 'redis://localhost:6379')
 redis_client = redis.from_url(redis_url, decode_responses=True)
 
 # Register HEIF opener
