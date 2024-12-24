@@ -26,7 +26,7 @@ redis_client = redis.from_url(redis_url, decode_responses=True)
 # Register HEIF opener
 register_heif_opener()
 
-@app.route('/')
+# @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
